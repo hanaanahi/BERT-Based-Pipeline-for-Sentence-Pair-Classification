@@ -1,0 +1,712 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "gpuType": "T4"
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        "By: HINA DAWAR"
+      ],
+      "metadata": {
+        "id": "eqLLGYNfB2AY"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "References used\n",
+        "\n",
+        "[5] https://medium.com/data-science/how-to-fine-tune-bert-with-nsp-8b5615468e12Links to an external site. Links to an external site.\n",
+        "\n",
+        "[2] https://medium.com/data-science/bert-for-next-sentence-prediction-466b67f8226fLinks to an external site. Links to an external site."
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 106
+        },
+        "id": "wodfSuAy9iy_",
+        "outputId": "2b1193dd-7cc5-4ad7-ed95-4df73fcf554b"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "SyntaxError",
+          "evalue": "invalid decimal literal (<ipython-input-37-6ca3ec8a2460>, line 3)",
+          "traceback": [
+            "\u001b[0;36m  File \u001b[0;32m\"<ipython-input-37-6ca3ec8a2460>\"\u001b[0;36m, line \u001b[0;32m3\u001b[0m\n\u001b[0;31m    [5] https://medium.com/data-science/how-to-fine-tune-bert-with-nsp-8b5615468e12Links to an external site. Links to an external site.\u001b[0m\n\u001b[0m                                                                       ^\u001b[0m\n\u001b[0;31mSyntaxError\u001b[0m\u001b[0;31m:\u001b[0m invalid decimal literal\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Environment Setup**"
+      ],
+      "metadata": {
+        "id": "IxDpA1wIjj4f"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install torch torchvision"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "oAg5FnrigC88",
+        "outputId": "ede6aaa6-5436-4f94-8eeb-af3f765949b6"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: torch in /usr/local/lib/python3.11/dist-packages (2.6.0+cu124)\n",
+            "Requirement already satisfied: torchvision in /usr/local/lib/python3.11/dist-packages (0.21.0+cu124)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.11/dist-packages (from torch) (3.18.0)\n",
+            "Requirement already satisfied: typing-extensions>=4.10.0 in /usr/local/lib/python3.11/dist-packages (from torch) (4.13.2)\n",
+            "Requirement already satisfied: networkx in /usr/local/lib/python3.11/dist-packages (from torch) (3.4.2)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.11/dist-packages (from torch) (3.1.6)\n",
+            "Requirement already satisfied: fsspec in /usr/local/lib/python3.11/dist-packages (from torch) (2025.3.2)\n",
+            "Requirement already satisfied: nvidia-cuda-nvrtc-cu12==12.4.127 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.127)\n",
+            "Requirement already satisfied: nvidia-cuda-runtime-cu12==12.4.127 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.127)\n",
+            "Requirement already satisfied: nvidia-cuda-cupti-cu12==12.4.127 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.127)\n",
+            "Requirement already satisfied: nvidia-cudnn-cu12==9.1.0.70 in /usr/local/lib/python3.11/dist-packages (from torch) (9.1.0.70)\n",
+            "Requirement already satisfied: nvidia-cublas-cu12==12.4.5.8 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.5.8)\n",
+            "Requirement already satisfied: nvidia-cufft-cu12==11.2.1.3 in /usr/local/lib/python3.11/dist-packages (from torch) (11.2.1.3)\n",
+            "Requirement already satisfied: nvidia-curand-cu12==10.3.5.147 in /usr/local/lib/python3.11/dist-packages (from torch) (10.3.5.147)\n",
+            "Requirement already satisfied: nvidia-cusolver-cu12==11.6.1.9 in /usr/local/lib/python3.11/dist-packages (from torch) (11.6.1.9)\n",
+            "Requirement already satisfied: nvidia-cusparse-cu12==12.3.1.170 in /usr/local/lib/python3.11/dist-packages (from torch) (12.3.1.170)\n",
+            "Requirement already satisfied: nvidia-cusparselt-cu12==0.6.2 in /usr/local/lib/python3.11/dist-packages (from torch) (0.6.2)\n",
+            "Requirement already satisfied: nvidia-nccl-cu12==2.21.5 in /usr/local/lib/python3.11/dist-packages (from torch) (2.21.5)\n",
+            "Requirement already satisfied: nvidia-nvtx-cu12==12.4.127 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.127)\n",
+            "Requirement already satisfied: nvidia-nvjitlink-cu12==12.4.127 in /usr/local/lib/python3.11/dist-packages (from torch) (12.4.127)\n",
+            "Requirement already satisfied: triton==3.2.0 in /usr/local/lib/python3.11/dist-packages (from torch) (3.2.0)\n",
+            "Requirement already satisfied: sympy==1.13.1 in /usr/local/lib/python3.11/dist-packages (from torch) (1.13.1)\n",
+            "Requirement already satisfied: mpmath<1.4,>=1.1.0 in /usr/local/lib/python3.11/dist-packages (from sympy==1.13.1->torch) (1.3.0)\n",
+            "Requirement already satisfied: numpy in /usr/local/lib/python3.11/dist-packages (from torchvision) (2.0.2)\n",
+            "Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in /usr/local/lib/python3.11/dist-packages (from torchvision) (11.2.1)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.11/dist-packages (from jinja2->torch) (3.0.2)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "zzpf_8ly9QQX"
+      },
+      "outputs": [],
+      "source": [
+        "import requests\n",
+        "from transformers import BertTokenizer, BertForNextSentencePrediction\n",
+        "import torch\n",
+        "import pandas as pd\n",
+        "from torch.optim import AdamW\n",
+        "from tqdm import tqdm\n",
+        "from sklearn.metrics import accuracy_score, jaccard_score\n",
+        "import numpy as np\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Data Processing**"
+      ],
+      "metadata": {
+        "id": "eKyCYsNpjz6N"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#loading pre-trained tokenizer\n",
+        "tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n",
+        "model = BertForNextSentencePrediction.from_pretrained('bert-base-uncased')"
+      ],
+      "metadata": {
+        "id": "SE_ohkIhYmlq"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data = pd.read_csv('trainingdata.csv', header=None, names=['sentence_a', 'sentence_b', 'label'])\n",
+        "data = data.dropna(subset=['label'])\n",
+        "data['label'] = data['label'].astype(int)\n",
+        "sentence_a = data['sentence_a'].tolist()\n",
+        "sentence_b = data['sentence_b'].tolist()\n",
+        "labels = data['label'].tolist()"
+      ],
+      "metadata": {
+        "id": "bqXDVyvSY6c5"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Tokenize the data\n",
+        "inputs = tokenizer(sentence_a, sentence_b, return_tensors='pt', max_length=512, truncation=True, padding='max_length')\n",
+        "\n",
+        "inputs['label'] = torch.LongTensor([labels]).T"
+      ],
+      "metadata": {
+        "id": "oVJ7tqFIZGey"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Dataset and DataLoader Setup**"
+      ],
+      "metadata": {
+        "id": "t2L4xuI-kATb"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class TravelDataset(torch.utils.data.Dataset):\n",
+        "\n",
+        "    def __init__(self, encodings):\n",
+        "        self.encodings = encodings\n",
+        "\n",
+        "    def __len__(self):\n",
+        "        return self.encodings.input_ids.shape[0]\n",
+        "\n",
+        "    def __getitem__(self, idx):\n",
+        "        return {key: tensor[idx] for key, tensor in self.encodings.items()}"
+      ],
+      "metadata": {
+        "id": "ODGsx_q4ZvQv"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datset= TravelDataset(inputs)"
+      ],
+      "metadata": {
+        "id": "NqwFau2BclAx"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "loader = torch.utils.data.DataLoader(datset, batch_size=8, shuffle=True, num_workers=2)"
+      ],
+      "metadata": {
+        "id": "I5c3PEdyco_Z"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "validation_data = pd.read_csv('validationdata.csv', header=None)\n",
+        "validation_data = pd.read_csv('validationdata.csv', header=None, usecols=[0, 1, 2], names=['sentence_a', 'sentence_b', 'label'])\n",
+        "validation_data['label'] = validation_data['label'].astype(int)\n",
+        "\n",
+        "validation_sentence_a = validation_data['sentence_a'].tolist()\n",
+        "validation_sentence_b = validation_data['sentence_b'].tolist()\n",
+        "validation_labels = validation_data['label'].tolist()\n",
+        "\n",
+        "validation_inputs = tokenizer(validation_sentence_a, validation_sentence_b,\n",
+        "                               return_tensors='pt',\n",
+        "                               max_length=512,\n",
+        "                               truncation=True,\n",
+        "                               padding='max_length')\n",
+        "\n",
+        "validation_inputs['label'] = torch.LongTensor(validation_labels)\n",
+        "\n",
+        "#Create DataLoader for validation\n",
+        "validation_dataset = TravelDataset(validation_inputs)\n",
+        "validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=4, shuffle=False)\n"
+      ],
+      "metadata": {
+        "id": "bFtpLgpak8rl"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load the test data\n",
+        "test_data = pd.read_csv('TestSet.csv', header=None, usecols=[0, 1, 2], names=['sentence_a', 'sentence_b', 'label'])\n",
+        "\n",
+        "# Drop rows where either 'sentence_a' or 'sentence_b' has NaN values\n",
+        "test_data_cleaned = test_data.dropna(subset=['sentence_a', 'sentence_b'])\n",
+        "\n",
+        "# Convert sentences to lists\n",
+        "test_sentence_a = test_data['sentence_a'].tolist()  # Convert column to list\n",
+        "test_sentence_b = test_data['sentence_b'].tolist()  # Convert column to list\n",
+        "\n",
+        "test_labels = test_data_cleaned['label'].tolist()\n",
+        "\n",
+        "\n",
+        "# Tokenize the test data by passing the two lists together\n",
+        "test_inputs = tokenizer(\n",
+        "    test_sentence_a,  # First list of sentences\n",
+        "    test_sentence_b,  # Second list of sentences\n",
+        "    return_tensors='pt',\n",
+        "    max_length=512,\n",
+        "    truncation=True,\n",
+        "    padding='max_length'\n",
+        ")\n"
+      ],
+      "metadata": {
+        "id": "i8RdAcFCy5WI"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Inference on pre-fine-tuning model**"
+      ],
+      "metadata": {
+        "id": "-3xM2tWXkQk_"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Ensure the model is on the correct device\n",
+        "device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')\n",
+        "model.to(device)  # Move the model to the same device as the inputs\n",
+        "\n",
+        "# Move each tensor in test_inputs to the same device as the model\n",
+        "test_inputs = {key: val.to(device) for key, val in test_inputs.items()}  # Move all input tensors to the same device\n",
+        "\n",
+        "# Set the model to evaluation mode (no dropout, etc.)\n",
+        "model.eval()\n",
+        "\n",
+        "# Perform inference on the test data (without gradients)\n",
+        "with torch.no_grad():\n",
+        "    # Forward pass with the input tensors now on the correct device\n",
+        "    outputs = model(**test_inputs)  # Pass the inputs to the model\n",
+        "    logits = outputs.logits  # Extract logits (model's predictions)\n",
+        "\n",
+        "    # Get the predicted labels (index with the highest logit)\n",
+        "    preds = torch.argmax(logits, dim=-1).cpu().numpy()  # Move to CPU for further processing if needed\n",
+        "\n",
+        "# Ensure test_labels is a tensor\n",
+        "test_labels_tensor = torch.tensor(test_labels).to(device)  # Move to the same device as the model\n",
+        "\n",
+        "test_labels_cpu = test_labels_tensor.cpu().numpy()\n",
+        "\n",
+        "# Calculate accuracy and Jaccard similarity for the pre-trained model\n",
+        "pretrained_accuracy = accuracy_score(test_labels_cpu, preds)\n",
+        "pretrained_jaccard = jaccard_score(test_labels_cpu, preds)\n",
+        "\n",
+        "print(f\"Pre-trained Model Accuracy: {pretrained_accuracy:.4f}\")\n",
+        "print(f\"Pre-trained Model Jaccard Similarity: {pretrained_jaccard:.4f}\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "u86KyVxTpbj0",
+        "outputId": "1c59f566-eff2-4f73-bda9-5d34fe40559a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Pre-trained Model Accuracy: 0.5922\n",
+            "Pre-trained Model Jaccard Similarity: 0.1600\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Training and Validation Loop**"
+      ],
+      "metadata": {
+        "id": "K8HlqVDzkWZ5"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.train()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "GXWv41wgdEeL",
+        "outputId": "6cdd0820-14ba-43d5-8868-fe84f0ee07cc"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "BertForNextSentencePrediction(\n",
+              "  (bert): BertModel(\n",
+              "    (embeddings): BertEmbeddings(\n",
+              "      (word_embeddings): Embedding(30522, 768, padding_idx=0)\n",
+              "      (position_embeddings): Embedding(512, 768)\n",
+              "      (token_type_embeddings): Embedding(2, 768)\n",
+              "      (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n",
+              "      (dropout): Dropout(p=0.1, inplace=False)\n",
+              "    )\n",
+              "    (encoder): BertEncoder(\n",
+              "      (layer): ModuleList(\n",
+              "        (0-11): 12 x BertLayer(\n",
+              "          (attention): BertAttention(\n",
+              "            (self): BertSdpaSelfAttention(\n",
+              "              (query): Linear(in_features=768, out_features=768, bias=True)\n",
+              "              (key): Linear(in_features=768, out_features=768, bias=True)\n",
+              "              (value): Linear(in_features=768, out_features=768, bias=True)\n",
+              "              (dropout): Dropout(p=0.1, inplace=False)\n",
+              "            )\n",
+              "            (output): BertSelfOutput(\n",
+              "              (dense): Linear(in_features=768, out_features=768, bias=True)\n",
+              "              (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n",
+              "              (dropout): Dropout(p=0.1, inplace=False)\n",
+              "            )\n",
+              "          )\n",
+              "          (intermediate): BertIntermediate(\n",
+              "            (dense): Linear(in_features=768, out_features=3072, bias=True)\n",
+              "            (intermediate_act_fn): GELUActivation()\n",
+              "          )\n",
+              "          (output): BertOutput(\n",
+              "            (dense): Linear(in_features=3072, out_features=768, bias=True)\n",
+              "            (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n",
+              "            (dropout): Dropout(p=0.1, inplace=False)\n",
+              "          )\n",
+              "        )\n",
+              "      )\n",
+              "    )\n",
+              "    (pooler): BertPooler(\n",
+              "      (dense): Linear(in_features=768, out_features=768, bias=True)\n",
+              "      (activation): Tanh()\n",
+              "    )\n",
+              "  )\n",
+              "  (cls): BertOnlyNSPHead(\n",
+              "    (seq_relationship): Linear(in_features=768, out_features=2, bias=True)\n",
+              "  )\n",
+              ")"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 49
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from torch.optim import AdamW\n",
+        "\n",
+        "optim = AdamW(model.parameters(), lr=5e-5, weight_decay=0.01)"
+      ],
+      "metadata": {
+        "id": "HsyApKGYdIBw"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from tqdm import tqdm\n",
+        "\n",
+        "for epoch in range(2):\n",
+        "\n",
+        "    model.train()  # Set model to training mode\n",
+        "    loop = tqdm(loader, leave=True)\n",
+        "    for batch in loop:\n",
+        "      optim.zero_grad()\n",
+        "\n",
+        "      input_ids = batch['input_ids'].to(device)\n",
+        "      attention_mask = batch['attention_mask'].to(device)\n",
+        "      labels = batch['label'].to(device)\n",
+        "\n",
+        "      outputs = model(input_ids, attention_mask=attention_mask, labels=labels)\n",
+        "      loss = outputs.loss\n",
+        "      loss.backward()\n",
+        "      optim.step()\n",
+        "\n",
+        "      loop.set_description(f'Epoch {epoch}')\n",
+        "      loop.set_postfix(loss=loss.item())\n",
+        "\n",
+        "    model.eval()  # Set model to evaluation mode\n",
+        "    val_loss = 0\n",
+        "    val_accuracy = 0\n",
+        "    with torch.no_grad():  # No need to track gradients for validation\n",
+        "      for batch in validation_loader:\n",
+        "          input_ids = batch['input_ids'].to(device)\n",
+        "          attention_mask = batch['attention_mask'].to(device)\n",
+        "          labels = batch['label'].to(device)\n",
+        "\n",
+        "          outputs = model(input_ids, attention_mask=attention_mask, labels=labels)\n",
+        "          loss = outputs.loss\n",
+        "          val_loss += loss.item()\n",
+        "\n",
+        "          # Calculate accuracy (optional)\n",
+        "          preds = torch.argmax(outputs.logits, dim=-1)\n",
+        "          val_accuracy += (preds == labels).sum().item()\n",
+        "\n",
+        "    # Average validation loss and accuracy\n",
+        "    val_loss /= len(validation_loader)\n",
+        "    val_accuracy /= len(validation_loader.dataset)\n",
+        "\n",
+        "    # Print or log validation results\n",
+        "    print(f\"Epoch {epoch} - Validation Loss: {val_loss:.4f} - Validation Accuracy: {val_accuracy:.4f}\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6ZPsYZbKdjML",
+        "outputId": "c0b0135b-8fe8-49a1-f106-a3712522c031"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "Epoch 0: 100%|██████████| 120/120 [01:27<00:00,  1.38it/s, loss=0.00278]\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 0 - Validation Loss: 0.0023 - Validation Accuracy: 1.0000\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "Epoch 1: 100%|██████████| 120/120 [01:26<00:00,  1.39it/s, loss=0.277]\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 1 - Validation Loss: 0.0285 - Validation Accuracy: 0.9939\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Set model to evaluation mode\n",
+        "model.eval()\n",
+        "\n",
+        "# Store all predictions and true labels for comparison\n",
+        "all_preds = []\n",
+        "all_labels = []\n",
+        "\n",
+        "# Perform inference on the test data (without gradients)\n",
+        "with torch.no_grad():  # No gradients needed during inference\n",
+        "    for batch_idx, batch in enumerate(validation_loader):  # Use enumerate to get the batch index\n",
+        "        input_ids = batch['input_ids'].to(device)\n",
+        "        attention_mask = batch['attention_mask'].to(device)\n",
+        "        labels = batch['label'].to(device)\n",
+        "\n",
+        "        # Forward pass\n",
+        "        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)\n",
+        "        logits = outputs.logits\n",
+        "\n",
+        "        # Get predictions\n",
+        "        preds = torch.argmax(logits, dim=-1).cpu().numpy()  # Move to CPU for further processing if needed\n",
+        "        all_preds.extend(preds)  # Accumulate predictions\n",
+        "\n",
+        "        # Get true labels\n",
+        "        all_labels.extend(labels.cpu().numpy())  # Accumulate true labels\n",
+        "\n",
+        "        # Debugging print to check if each batch has the expected number of samples\n",
+        "        print(f\"Batch {batch_idx + 1}: Preds: {len(preds)}, Labels: {len(labels)}\")\n",
+        "\n",
+        "# Debugging print to ensure both lists are the same length\n",
+        "print(f\"Total number of predictions: {len(all_preds)}\")\n",
+        "print(f\"Total number of labels: {len(all_labels)}\")\n",
+        "\n",
+        "# Ensure all_preds and all_labels have the same length\n",
+        "assert len(all_preds) == len(all_labels), \"Mismatch between predictions and true labels length!\"\n",
+        "\n",
+        "# Calculate accuracy and Jaccard similarity for the pre-trained model\n",
+        "pretrained_accuracy = accuracy_score(all_labels, all_preds)\n",
+        "pretrained_jaccard = jaccard_score(all_labels, all_preds)\n",
+        "\n",
+        "print(f\"Pre-trained Model Accuracy: {pretrained_accuracy:.4f}\")\n",
+        "print(f\"Pre-trained Model Jaccard Similarity: {pretrained_jaccard:.4f}\")\n"
+      ],
+      "metadata": {
+        "id": "uFarzaIvlaMx",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "ea62794c-aff3-4c58-f481-8918d2a34ede"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Batch 1: Preds: 4, Labels: 4\n",
+            "Batch 2: Preds: 4, Labels: 4\n",
+            "Batch 3: Preds: 4, Labels: 4\n",
+            "Batch 4: Preds: 4, Labels: 4\n",
+            "Batch 5: Preds: 4, Labels: 4\n",
+            "Batch 6: Preds: 4, Labels: 4\n",
+            "Batch 7: Preds: 4, Labels: 4\n",
+            "Batch 8: Preds: 4, Labels: 4\n",
+            "Batch 9: Preds: 4, Labels: 4\n",
+            "Batch 10: Preds: 4, Labels: 4\n",
+            "Batch 11: Preds: 4, Labels: 4\n",
+            "Batch 12: Preds: 4, Labels: 4\n",
+            "Batch 13: Preds: 4, Labels: 4\n",
+            "Batch 14: Preds: 4, Labels: 4\n",
+            "Batch 15: Preds: 4, Labels: 4\n",
+            "Batch 16: Preds: 4, Labels: 4\n",
+            "Batch 17: Preds: 4, Labels: 4\n",
+            "Batch 18: Preds: 4, Labels: 4\n",
+            "Batch 19: Preds: 4, Labels: 4\n",
+            "Batch 20: Preds: 4, Labels: 4\n",
+            "Batch 21: Preds: 4, Labels: 4\n",
+            "Batch 22: Preds: 4, Labels: 4\n",
+            "Batch 23: Preds: 4, Labels: 4\n",
+            "Batch 24: Preds: 4, Labels: 4\n",
+            "Batch 25: Preds: 4, Labels: 4\n",
+            "Batch 26: Preds: 4, Labels: 4\n",
+            "Batch 27: Preds: 4, Labels: 4\n",
+            "Batch 28: Preds: 4, Labels: 4\n",
+            "Batch 29: Preds: 4, Labels: 4\n",
+            "Batch 30: Preds: 4, Labels: 4\n",
+            "Batch 31: Preds: 4, Labels: 4\n",
+            "Batch 32: Preds: 4, Labels: 4\n",
+            "Batch 33: Preds: 4, Labels: 4\n",
+            "Batch 34: Preds: 4, Labels: 4\n",
+            "Batch 35: Preds: 4, Labels: 4\n",
+            "Batch 36: Preds: 4, Labels: 4\n",
+            "Batch 37: Preds: 4, Labels: 4\n",
+            "Batch 38: Preds: 4, Labels: 4\n",
+            "Batch 39: Preds: 4, Labels: 4\n",
+            "Batch 40: Preds: 4, Labels: 4\n",
+            "Batch 41: Preds: 3, Labels: 3\n",
+            "Total number of predictions: 163\n",
+            "Total number of labels: 163\n",
+            "Pre-trained Model Accuracy: 0.9939\n",
+            "Pre-trained Model Jaccard Similarity: 0.9888\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Results Evaluation**"
+      ],
+      "metadata": {
+        "id": "CHxbolaoCE1o"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Pre-Fine-Tuning**\n",
+        "\n",
+        "1. Pre-Fine Tuning Accurancy = 0.5922\n",
+        "\n",
+        "This is a low accuracy that suggests pre-trained bert model, without any fine tuning might not be well suited for sentence classification.\n",
+        "\n",
+        "2. Jaccard Similarity = 0.1600\n",
+        "\n",
+        "the overalap between true and preicted labels is low\n",
+        "\n",
+        "Overall, the model is not performing well before fine tuning\n",
+        "\n",
+        "**After Fine Tuning**\n",
+        "\n",
+        "EPOCH 0\n",
+        "\n",
+        "1. Training loss of 0.0074 shows that model is beginning to fine-tune on the task\n",
+        "\n",
+        "2. Validation loss of 0.0049 is very low, suggesting model learned to fit validation data really well after the first epoch\n",
+        "\n",
+        "3. Validation accurancy of 1.0 indicates that model predicted 100% of the validation set correctly. However, this could be a sign of overfitting\n",
+        "\n",
+        "EPOCH 1\n",
+        "\n",
+        "1. Training loss of 0.000372 shows that model is improving and trainig is progressing well.\n",
+        "\n",
+        "2. Validation loss of 0.0002 is very low and could indicate overfitting.\n",
+        "\n",
+        "3. Validation accurancy of 1.0 could be a sign of overfititng.\n",
+        "\n",
+        "TEST SET\n",
+        "\n",
+        "1. Trained model accuracy of 1.0 indicates overfitting, but pre-trained model correctly classified every single sentence pair in your test or validation set.\n",
+        "\n",
+        "2. A Jaccard similarity of 1.0 indicates perfect overlap between the predicted and actual labels, meaning that every prediction made by the model matches the ground truth.\n",
+        "\n",
+        "# **conclusion:**\n",
+        "\n",
+        "pre-trained model has already learned to classify these sentence pairs correctly, but this could be due to the reasons mentioned earlier liek overfitting\n"
+      ],
+      "metadata": {
+        "id": "STFJ9KMqwKJy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "xYBU47kWAD3Q"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
